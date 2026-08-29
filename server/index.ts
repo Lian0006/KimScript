@@ -5,20 +5,32 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
+// Single source of truth for CORS: add new frontend domains here only.
+const ALLOWED_ORIGINS = new Set([
+  'https://www.kimscript.com',
+  'https://kim-script.vercel.app',
+  'https://assistan2.vercel.app',
+  'https://assistan2-git-main-jairlatins-projects.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
+]);
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https:\/\/kim-script.*\.vercel\.app$/,
+  /^https:\/\/assistan2.*\.vercel\.app$/,
+  /^https:\/\/.*\.kimscript\.com$/,
+];
+
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  return ALLOWED_ORIGIN_PATTERNS.some((re) => re.test(origin));
+}
+
 // Global CORS/preflight middleware (runs before everything)
 app.use((req, res, next) => {
   const origin = req.headers.origin as string | undefined;
-  const allowedOrigins = [
 
-    'https://www.kimscript.com',
-    'https://assistan2.vercel.app',
-    'https://assistan2-git-main-jairlatins-projects.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ];
-  const isAllowed = origin && (allowedOrigins.includes(origin) || /^https:\/\/assistan2.*\.vercel\.app$/.test(origin) || /^https:\/\/.*\.kimscript\.com$/.test(origin));
-
-  if (isAllowed && origin) {
+  if (origin && isOriginAllowed(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Vary', 'Origin');
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -39,20 +51,7 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    const allowedOrigins = [
-      'https://www.kimscript.com',
-      'https://assistan2.vercel.app',
-      'https://assistan2-git-main-jairlatins-projects.vercel.app',
-      'http://localhost:3000',
-      'http://localhost:5173'
-    ];
-
-    const isAllowed =
-      allowedOrigins.indexOf(origin) !== -1 ||
-      /^https:\/\/assistan2.*\.vercel\.app$/.test(origin) ||
-      /^https:\/\/.*\.kimscript\.com$/.test(origin);
-
-    if (isAllowed) {
+    if (isOriginAllowed(origin)) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -65,15 +64,6 @@ app.use(cors({
   preflightContinue: false,
   optionsSuccessStatus: 200
 }));
-
-// Handle preflight requests explicitly
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
