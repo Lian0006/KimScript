@@ -1,0 +1,33 @@
+# Poste.io - Servidor de Correo Completo Self-Hosted
+# Servidor de correo completo con webmail, SMTP, IMAP, POP3
+# Requiere dominio y configuración DNS
+
+version: '3.8'
+
+services:
+  poste:
+    image: analogic/poste.io:latest
+    restart: unless-stopped
+    hostname: mail.kimscript.com
+    ports:
+      - "25:25"      # SMTP
+      - "143:143"    # IMAP
+      - "587:587"    # SMTP Submission
+      - "993:993"    # IMAPS
+      - "995:995"    # POP3S
+      - "8080:8080"  # Web UI
+    environment:
+      TZ: America/New_York
+      LETSENCRYPT_EMAIL: amor@kimscript.com
+    volumes:
+      - poste_data:/data
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+
+volumes:
+  poste_data:
+
+
+
+
